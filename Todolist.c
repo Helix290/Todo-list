@@ -3,31 +3,40 @@
 #include <string.h>
 
 #define SIZE 100	//‹L‰¯‚·‚éTodoƒŠƒXƒg‚ÌÅ‘å”
+#define STR 256		//“ü—Í‚Å‚«‚éÅ‘å•¶š”
 
 typedef struct
 {
 	int priority;	//g—pó‹µ&—Dæ“x 0:–¢g—poríœÏ‚İ 1:g—p’†A—Dæ“x Normal  2:—Dæ“x High  3:—Dæ“x Very high
 	int tmp_num;	//•\¦‚·‚é‡”Ô‚ğˆê“I‚É•Û‘¶‚µ‚Ä‚¨‚­
-	char data[256];
+	char data[STR];
 }list;
 
 list todolist[SIZE];
+FILE *todolist_txt;
 
 int digit(int size);
-int discriminant_int_char(char input[256]);
+int discriminant_int_char(char input[STR]);
 void help();
+void initialization();
 void display_todolist();
-void todolist_add(char input[256]);
+void file_write(int i);
+void todolist_add(char input[STR]);
 void change_priority_or_delete(int num);
+char* remove_line_feed(char* data_tmp);
+void help_color_info();
 
 int main()
 {
-	char input[256];
+	char input[STR];
 	int input_length, dig, input_int;
-
+	
 	dig = digit(SIZE);
+	initialization();	//‹N“®Aƒtƒ@ƒCƒ‹æ‚è‚İ
+
 	while (1) {
 		display_todolist();
+		printf("(help‚Æ“ü—Í‚·‚é‚Æƒwƒ‹ƒv‚ğ•\¦‚µ‚Ü‚·)\n");
 		printf("“ü—ÍF");
 		scanf("%s", input);
 		input_length = discriminant_int_char(input);
@@ -60,11 +69,60 @@ int digit(int size)	//‹L‰¯‚·‚éTodoƒŠƒXƒg‚ÌÅ‘å”(SIZE)‚ª‰½Œ…‚©ŒvZ‚·‚é
 	return dig;
 }
 
-void display_todolist()
+void initialization()
+{
+	int i, check;
+	char tmp[STR];
+
+	todolist_txt = fopen("Todolist.txt", "rt");
+	if (todolist_txt == 0) {	//‰½‚à‚µ‚È‚¢
+	}
+	else {
+		for (i = 0; ; i++) {
+			check = fgets(tmp, STR, todolist_txt);
+			if (check == NULL) {
+				fclose(todolist_txt);
+				break;
+			}
+			todolist[i].priority = atoi(tmp);
+			fgets(tmp, STR, todolist_txt);
+			todolist[i].tmp_num = atoi(tmp);
+			fgets(tmp, STR, todolist_txt);
+			strcpy(todolist[i].data, remove_line_feed(tmp));
+		}
+	}
+	
+}
+
+char* remove_line_feed(char* data_tmp)	//‰üs‚ğÁ‚·
+{
+	int i;
+	char* ptr;	
+	
+	ptr = data_tmp;
+	for(i = 0; i < STR; i++){
+		if (*ptr == '\n') {
+			*ptr = '\0';
+			break;
+		}
+		ptr++;	//ˆê‚Â‚¸‚ÂƒAƒhƒŒƒX‚ğˆÚ“®‚³‚¹‚Ä‚¢‚­
+	}
+	return data_tmp;
+}
+
+void display_todolist()	//ƒtƒ@ƒCƒ‹‘‚«o‚µ‚àŠÜ‚Ş
 {
 	int i, j;
 
 	printf("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");	//TodoƒŠƒXƒg‚ªŒ©‚â‚·‚¢‚æ‚¤‚É‰üs
+	todolist_txt = fopen("Todolist.txt", "wt");	//ƒtƒ@ƒCƒ‹‚Ì’†g‚ğ‰Šú‰»
+	fclose(todolist_txt);
+
+	todolist_txt = fopen("Todolist.txt", "at");
+	if (todolist_txt == 0) {
+		printf("ƒtƒ@ƒCƒ‹ƒI[ƒvƒ“ƒGƒ‰[\n");
+		exit(EXIT_FAILURE);
+	}
 	j = 1;
 	for (i = 0; i < SIZE; i++) {
 		if (todolist[i].priority == 3) {
@@ -73,6 +131,7 @@ void display_todolist()
 			printf("%s\n", todolist[i].data);
 			printf("\x1b[39m");	//•¶š‚ğƒfƒtƒHƒ‹ƒgF‚É
 			todolist[i].tmp_num = j;
+			file_write(i);
 			j++;
 		}
 	}
@@ -84,6 +143,7 @@ void display_todolist()
 			printf("%s\n", todolist[i].data);
 			printf("\x1b[39m");	//•¶š‚ğƒfƒtƒHƒ‹ƒgF‚É
 			todolist[i].tmp_num = j;
+			file_write(i);
 			j++;
 		}
 	}
@@ -92,13 +152,27 @@ void display_todolist()
 		if (todolist[i].priority == 1) {
 			printf("%d)@%s\n", j, todolist[i].data);
 			todolist[i].tmp_num = j;
+			file_write(i);
 			j++;
 		}
 	}
 	printf("\n");
+	fclose(todolist_txt);
 }
 
-int discriminant_int_char(char input[256])	//“ü—Í‚³‚ê‚½•¶š—ñ‚ªA”š‚©•¶š‚©”»•Ê‚·‚é
+void file_write(int i)
+{
+	/*@—Dæ“x(”š)
+		todoƒŠƒXƒg‚Ì‡”Ô(”š)
+		todoƒŠƒXƒg‚Ì“à—e(•¶š—ñ)
+			‚Ì‡‚Å‘‚«‚Ş
+	*/
+	fprintf(todolist_txt, "%d\n%d\n", todolist[i].priority, todolist[i].tmp_num);
+	fputs(todolist[i].data, todolist_txt);
+	fputs("\n", todolist_txt);
+}
+
+int discriminant_int_char(char input[STR])	//“ü—Í‚³‚ê‚½•¶š—ñ‚ªA”š‚©•¶š‚©”»•Ê‚·‚é
 {
 	int i, length, discriminant;
 
@@ -123,7 +197,7 @@ int discriminant_int_char(char input[256])	//“ü—Í‚³‚ê‚½•¶š—ñ‚ªA”š‚©•¶š‚©”»•
 	return discriminant;
 }
 
-void todolist_add(char input[256])
+void todolist_add(char input[STR])
 {
 	int i;
 
@@ -155,12 +229,13 @@ void change_priority_or_delete(int num)
 				printf("OK¨1,NG¨2‚ğ“ü—ÍF");
 				scanf("%d", &yes_or_no);
 				if (yes_or_no == 1) {
+					printf("Œ»İ‚Ì•¶šF%s\n", todolist[i].data);
 					printf("V‚µ‚¢•¶š‚ğ“ü—ÍF");
 					scanf("%s", todolist[i].data);
-					printf("•ÏX‚µ‚Ü‚µ‚½");
+					printf("•ÏX‚µ‚Ü‚µ‚½\n");
 				}
 				else {
-					printf("•ÏX‚µ‚Ü‚¹‚ñ‚Å‚µ‚½");
+					printf("•ÏX‚µ‚Ü‚¹‚ñ‚Å‚µ‚½\n");
 				}
 			}
 			else if(change_or_delete == 2){
@@ -170,16 +245,11 @@ void change_priority_or_delete(int num)
 				printf("\x1b[39m");	//•¶š‚ğƒfƒtƒHƒ‹ƒgF‚É
 				printf("' ");
 				printf("‚Ì—Dæ“x‚ğ•ÏX‚µ‚Ü‚·B\n");	//—Dæ“x‚Ì•ÏX
-				printf("OK¨1,NG¨2‚ğ“ü—ÍF");
 				scanf("%d", &yes_or_no);
-				if (yes_or_no == 1) {
+					printf("Œ»İ‚Ì—Dæ“xF%d\n", todolist[i].priority);
 					printf("V‚µ‚¢—Dæ“x(1,2,3)‚ğ“ü—ÍF");
 					scanf("%d", &todolist[i].priority);
-					printf("•ÏX‚µ‚Ü‚µ‚½");
-				}
-				else {
-					printf("•ÏX‚µ‚Ü‚¹‚ñ‚Å‚µ‚½");
-				}
+					printf("•ÏX‚µ‚Ü‚µ‚½\n");
 			}
 			else if(change_or_delete == 3){
 				printf("'");
@@ -192,14 +262,14 @@ void change_priority_or_delete(int num)
 				scanf("%d", &yes_or_no);
 				if (yes_or_no == 1) {
 					todolist[i].priority = 0;
-					printf("íœ‚µ‚Ü‚µ‚½");
+					printf("íœ‚µ‚Ü‚µ‚½\n");
 				}
 				else {
-					printf("íœ‚µ‚Ü‚¹‚ñ‚Å‚µ‚½");
+					printf("íœ‚µ‚Ü‚¹‚ñ‚Å‚µ‚½\n");
 				}
 			}
 			else {
-				printf("1~3ˆÈŠO‚Ì•¶š‚ª“ü—Í‚³‚ê‚Ü‚µ‚½BƒŠƒXƒg‚É–ß‚è‚Ü‚·B");
+				printf("1~3ˆÈŠO‚Ì•¶š‚ª“ü—Í‚³‚ê‚Ü‚µ‚½BƒŠƒXƒg‚É–ß‚è‚Ü‚·B\n");
 			}
 		}
 	}
@@ -207,15 +277,57 @@ void change_priority_or_delete(int num)
 
 void help()
 {
-	printf("TodoƒŠƒXƒg‚Ö‚Ì’Ç‰Á\n\n");
-	printf("@•¶š‚ğ“ü—Í‚µ‚Ä‚­‚¾‚³‚¢B\n");
-	printf("@Ÿ‚É—Dæ“x(1, 2, 3)‚ğ“ü—Í‚·‚é‚Æ’Ç‰Á‚ªŠ®—¹‚µ‚Ü‚·B(1:Normal(”’‚Å•\¦), 2:High(‰©F‚Å•\¦), 3:Very high(Ô•¶šAƒŠƒXƒg‚Ìˆê”Ôã‚É•\¦))\n\n");
-	
-	printf("—Dæ“x‚Ì•ÏX‚â•¶š‚Ì•ÏXAíœ‚Ìˆ—‚Ìd•û\n\n");
-	printf("@‚Ü‚¸A•ÏXoríœ‚µ‚½‚¢ƒŠƒXƒg‚Ì”Ô†(”¼Šp)‚ğ“ü—Í‚µ‚Ä‚­‚¾‚³‚¢B\n");
-	printf("@Ÿ‚ÉA•¶š‚Ì•ÏX‚È‚ç'1', —Dæ“x‚Ì•ÏX‚È‚ç'2', •¶š‚Ìíœ‚È‚ç'3'‚ğ“ü—Í‚µ‚Ü‚·B\n\n");
-	printf("@@'1'‚ğ“ü—Í‚µ‚½ê‡...V‚½‚È—Dæ“x‚ğ“ü—Í‚µ‚Ü‚·B(1:Normal(”’‚Å•\¦), 2:High(‰©F‚Å•\¦), 3:Very high(Ô‚Å•\¦))\n");
-	printf("@@'2'‚ğ“ü—Í‚µ‚½ê‡...u‚Éíœ‚µ‚Ü‚·B(‚»‚ÌŒã‚Ì‘€ì‚Í•K—v‚ ‚è‚Ü‚¹‚ñB)\n\n\n");
+	int x;
 
-	printf("help‚Æ“ü—Í‚·‚é‚Æƒwƒ‹ƒv‚ğ•\¦‚µ‚Ü‚·B\n");
+	while (1) {
+		printf("\nTodoƒŠƒXƒg‚ÌV‹K’Ç‰Á¨'1' •¶š‚Ì•ÏX¨'2' —Dæ“x‚Ì•ÏX¨'3' íœ‚Ìd•û¨'4'  help‚ğ•Â‚¶‚éê‡‚Í'5'‚ğ“ü—ÍF");
+		scanf("%d", &x);
+		if (x == 1) {
+			printf("\nTodoƒŠƒXƒg‚Ö‚Ì’Ç‰Á\n\n");
+			printf("@•¶š‚ğ“ü—Í‚·‚é‚Æˆ—‚ªŠJn‚µ‚Ü‚·B\n");
+			printf("@Ÿ‚É—Dæ“x(1, 2, 3)‚ğ“ü—Í‚·‚é‚Æ’Ç‰Á‚ªŠ®—¹‚µ‚Ü‚·B");
+			help_color_info();
+			printf("\n@’Ç‰ÁŠ®—¹‚Å‚·\n\n\n");
+		}
+		else if (x == 2) {
+			printf("\n•¶š‚Ì•ÏX\n\n");
+			printf("@‚Ü‚¸A•ÏX‚µ‚½‚¢ƒŠƒXƒg‚Ì”Ô†(”¼Šp)‚ğ“ü—Í‚µ‚Ä‚­‚¾‚³‚¢B\n");
+			printf("@Ÿ‚ÉA”Ô† '1' ‚ğ“ü—Í‚µ‚Ü‚·B\n\n\n");
+			printf("@•ÏXŠ®—¹‚Å‚·\n\n\n");
+		}
+		else if (x == 3) {
+			printf("\n—Dæ“x‚Ì•ÏX\n\n");
+			printf("@‚Ü‚¸A•ÏX‚µ‚½‚¢ƒŠƒXƒg‚Ì”Ô†(”¼Šp)‚ğ“ü—Í‚µ‚Ä‚­‚¾‚³‚¢B\n");
+			printf("@Ÿ‚ÉA”Ô† '2' ‚ğ“ü—Í‚µ‚Ü‚·B\n\n");
+			printf("@V‚½‚È—Dæ“x‚ğ“ü—Í‚µ‚Ü‚·B");
+			help_color_info();
+			printf("\n@•ÏXŠ®—¹‚Å‚·\n\n\n");
+		}
+		else if (x == 4) {
+			printf("\níœ‚Ìˆ—‚Ìd•û\n\n");
+			printf("@‚Ü‚¸Aíœ‚µ‚½‚¢ƒŠƒXƒg‚Ì”Ô†(”¼Šp)‚ğ“ü—Í‚µ‚Ä‚­‚¾‚³‚¢B\n");
+			printf("@Ÿ‚ÉA”Ô† '3' ‚ğ“ü—Í‚µ‚Ü‚·B\n\n");
+			printf("@yes '1'‚ğ“ü—Í‚·‚é‚Æu‚Éíœ‚µ‚Ü‚·B\n\n\n");
+		}
+		else if (x == 5) {
+			printf("\nƒwƒ‹ƒv‚ğ•Â‚¶‚Ü‚·\n");
+			break;
+		}
+		else {
+			printf("\n•\¦‚³‚ê‚Ä‚¢‚é”Ô†‚ğ“ü—Í‚µ‚Ä‚­‚¾‚³‚¢\n\n");
+		}
+	}
+}
+
+void help_color_info()
+{
+	printf("(1:Normal, 2:");
+	printf("\x1b[33m");	//•¶š‚ğ‰©F‚É
+	printf("High");
+	printf("\x1b[39m");	//•¶š‚ğƒfƒtƒHƒ‹ƒgF‚É
+	printf(", 3:");
+	printf("\x1b[31m");	//•¶š‚ğÔF‚É
+	printf("Very high");
+	printf("\x1b[39m");	//•¶š‚ğƒfƒtƒHƒ‹ƒgF‚É
+	printf("@—Dæ“x‚Ì‚‚¢‡‚Éã‚©‚ç•\¦‚µ‚Ü‚·B)\n");
 }
