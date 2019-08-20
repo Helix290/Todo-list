@@ -86,8 +86,7 @@ void initialization()
 			}
 			todolist[i].priority = atoi(tmp);
 			fgets(tmp, STR, todolist_txt);
-			todolist[i].tmp_num = atoi(tmp);
-			fgets(tmp, STR, todolist_txt);
+			todolist[i].tmp_num = i + 1;
 			strcpy(todolist[i].data, remove_line_feed(tmp));
 		}
 	}
@@ -163,11 +162,10 @@ void display_todolist()	//ファイル書き出しも含む
 void file_write(int i)
 {
 	/*　優先度(数字)
-		todoリストの順番(数字)
 		todoリストの内容(文字列)
 			の順で書き込む
 	*/
-	fprintf(todolist_txt, "%d\n%d\n", todolist[i].priority, todolist[i].tmp_num);
+	fprintf(todolist_txt, "%d\n", todolist[i].priority);
 	fputs(todolist[i].data, todolist_txt);
 	fputs("\n", todolist_txt);
 }
